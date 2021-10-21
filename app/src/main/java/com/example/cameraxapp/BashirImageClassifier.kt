@@ -23,7 +23,7 @@ internal class BashirImageClassifier(val context: Context) {
 
     fun getScore(image: TensorImage, bitmap : Bitmap? = null): Float {
         var hotDogScore = 0.0f
-        imageClassifier.classify(image, image.getImageProcessingOptions(bitmap!!))
+        imageClassifier.classify(image)
             .forEach { classifications ->
                 hotDogScore = classifications.toHotDogScore()
             }
@@ -50,7 +50,6 @@ internal class BashirImageClassifier(val context: Context) {
 
     private companion object {
         const val MODEL_PATH = "yolov5s.tflite"
-        const val HOT_DOG_LABEL = "hotdog"
         const val SCORE_THRESHOLD = 0.05f
     }
 }
