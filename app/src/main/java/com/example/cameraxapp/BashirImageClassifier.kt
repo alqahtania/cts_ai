@@ -3,11 +3,9 @@ package com.example.cameraxapp
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
-import android.view.Surface
 import org.tensorflow.lite.support.image.TensorImage
 import org.tensorflow.lite.task.vision.classifier.Classifications
 import org.tensorflow.lite.task.vision.classifier.ImageClassifier
-import org.tensorflow.lite.task.vision.segmenter.OutputType
 
 internal class BashirImageClassifier(val context: Context) {
 
@@ -22,15 +20,15 @@ internal class BashirImageClassifier(val context: Context) {
     }
 
     fun getScore(image: TensorImage, bitmap : Bitmap? = null): Float {
-        var hotDogScore = 0.0f
+        var score = 0.0f
         imageClassifier.classify(image)
             .forEach { classifications ->
-                hotDogScore = classifications.toHotDogScore()
+                score = classifications.toScore()
             }
-        return hotDogScore
+        return score
     }
 
-    private fun Classifications.toHotDogScore(): Float {
+    private fun Classifications.toScore(): Float {
         categories.forEach { category ->
                 Log.d(this::class.java.name, "label ${category.label}")
                 return category.score
@@ -38,15 +36,6 @@ internal class BashirImageClassifier(val context: Context) {
         return 0.0f
     }
 
-    private fun getSensorOrientation(){
-
-//        return when (getWindowManager().getDefaultDisplay().getRotation()) {
-//            Surface.ROTATION_270 -> 270
-//            Surface.ROTATION_180 -> 180
-//            Surface.ROTATION_90 -> 90
-//            else -> 0
-//        }
-    }
 
     private companion object {
         const val MODEL_PATH = "yolov5s.tflite"

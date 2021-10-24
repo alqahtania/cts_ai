@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.Manifest
 import android.content.pm.PackageManager
+import android.hardware.SensorManager
 import android.net.Uri
 import android.util.Log
 import android.util.Size
@@ -20,6 +21,8 @@ import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
+import com.example.cameraxapp.OrientationManager.ScreenOrientation
+
 typealias LumaListener = (luma: Double) -> Unit
 
 class MainActivity : AppCompatActivity() {
@@ -37,11 +40,12 @@ class MainActivity : AppCompatActivity() {
             startCamera()
         } else {
             ActivityCompat.requestPermissions(
-                this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
+                this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS
+            )
         }
 
         // Set up the listener for take photo button
-        camera_capture_button.setOnClickListener { takePhoto() }
+        camera_capture_button.setOnClickListener { checkPhotoOrientationBeforeImageCapture() }
 
         outputDirectory = getOutputDirectory()
 
@@ -49,21 +53,43 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<String>, grantResults:
-        IntArray) {
+        IntArray
+    ) {
         if (requestCode == REQUEST_CODE_PERMISSIONS) {
             if (allPermissionsGranted()) {
                 startCamera()
             } else {
-                Toast.makeText(this,
+                Toast.makeText(
+                    this,
                     "Permissions not granted by the user.",
-                    Toast.LENGTH_SHORT).show()
+                    Toast.LENGTH_SHORT
+                ).show()
                 finish()
             }
-        }else{
+        } else {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        }
+    }
+
+    private fun checkPhotoOrientationBeforeImageCapture() {
+        if (imageCapture?.targetRotation == Surface.ROTATION_0 || imageCapture?.targetRotation == Surface.ROTATION_180) {
+            alertDialog(this, false){
+                setTitle("تنبيه")
+                setMessage("تم التقاط الصورة بطريقة عمودية، \n" +
+                        "\n" +
+                        "للتأكيد، الرجاء اختيار \"نعم\" ")
+                positiveButton(text = "نعم") {
+                    takePhoto()
+                    it.dismiss()
+                }
+                negativeButton {
+                    it.dismiss()
+                }
+            }.show()
+        } else {
+            takePhoto()
         }
     }
 
@@ -74,16 +100,21 @@ class MainActivity : AppCompatActivity() {
         // Create time-stamped output file to hold the image
         val photoFile = File(
             outputDirectory,
-            SimpleDateFormat(FILENAME_FORMAT, Locale.US
-            ).format(System.currentTimeMillis()) + ".jpg")
+            SimpleDateFormat(
+                FILENAME_FORMAT, Locale.US
+            ).format(System.currentTimeMillis()) + ".jpg"
+        )
 
         // Create output options object which contains file + metadata
         val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
 
+
         // Set up image capture listener, which is triggered after photo has
         // been taken
         imageCapture.takePicture(
-            outputOptions, ContextCompat.getMainExecutor(this), object : ImageCapture.OnImageSavedCallback {
+            outputOptions,
+            ContextCompat.getMainExecutor(this),
+            object : ImageCapture.OnImageSavedCallback {
                 override fun onError(exc: ImageCaptureException) {
                     Log.e(TAG, "Photo capture failed: ${exc.message}", exc)
                 }
@@ -96,6 +127,7 @@ class MainActivity : AppCompatActivity() {
                 }
             })
     }
+
 
     private fun startCamera() {
         //This is used to bind the lifecycle of cameras to the lifecycle owner.
@@ -115,14 +147,19 @@ class MainActivity : AppCompatActivity() {
             imageCapture = ImageCapture.Builder()
                 .build()
 
+            imageCapture?.let {
+                setTargetRotation(it)
+            }
             val imageAnalyzer = ImageAnalysis.Builder()
                 .setTargetResolution(Size(640, 640))
 //                .setTargetAspectRatio(AspectRatio.RATIO_16_9)
                 .build()
                 .also {
-                    it.setAnalyzer(cameraExecutor, BashirImageAnalyzer(BashirImageClassifier(this)) { score ->
-                        Log.d(TAG, "Score: $score")
-                    })
+                    it.setAnalyzer(
+                        cameraExecutor,
+                        BashirImageAnalyzer(BashirImageClassifier(this)) { score ->
+                            Log.d(TAG, "Score: $score")
+                        })
                 }
 
             // Select back camera as a default
@@ -134,9 +171,10 @@ class MainActivity : AppCompatActivity() {
 
                 // Bind use cases to camera
                 cameraProvider.bindToLifecycle(
-                    this, cameraSelector, preview, imageCapture, imageAnalyzer)
+                    this, cameraSelector, preview, imageCapture, imageAnalyzer
+                )
 
-            } catch(exc: Exception) {
+            } catch (exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
             }
 
@@ -145,12 +183,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(
-            baseContext, it) == PackageManager.PERMISSION_GRANTED
+            baseContext, it
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun getOutputDirectory(): File {
         val mediaDir = externalMediaDirs.firstOrNull()?.let {
-            File(it, resources.getString(R.string.app_name)).apply { mkdirs() } }
+            File(it, resources.getString(R.string.app_name)).apply { mkdirs() }
+        }
         return if (mediaDir != null && mediaDir.exists())
             mediaDir else filesDir
     }
@@ -182,13 +222,27 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun getOrientation() : Int{
-        return when (getWindowManager().defaultDisplay.getRotation()) {
-            Surface.ROTATION_270 -> 270
-            Surface.ROTATION_180 -> 180
-            Surface.ROTATION_90 -> 90
-            else -> 0
-        }
+
+    private fun setTargetRotation(imageCapture: ImageCapture) {
+
+        OrientationManager(this, SensorManager.SENSOR_DELAY_NORMAL) { screenOrientation ->
+            when (screenOrientation) {
+                ScreenOrientation.PORTRAIT -> {
+                    showToast("Portrait")
+                }
+                ScreenOrientation.LANDSCAPE -> {
+                    showToast("Landscape")
+                }
+                ScreenOrientation.REVERSED_PORTRAIT -> {
+                    showToast("Reversed Portrait")
+                }
+                ScreenOrientation.REVERSED_LANDSCAPE -> {
+                    showToast("Reversed Landscape")
+                }
+            }
+            imageCapture.targetRotation = screenOrientation.orientaion
+        }.enable()
+
     }
 
     companion object {

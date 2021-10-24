@@ -10,9 +10,9 @@ internal class BashirImageAnalyzer(
 
     override fun analyze(image: ImageProxy) {
 
-        scoreListener(
-            imageClassifier.getScore(image.toTensorImage(), image.toBitmap())
-        )
+//        scoreListener(
+//            imageClassifier.getScore(image.toTensorImage(), image.toBitmap())
+//        )
         image.close()
     }
 }
