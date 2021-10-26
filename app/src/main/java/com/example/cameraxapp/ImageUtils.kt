@@ -5,6 +5,10 @@ import androidx.camera.core.ImageProxy
 import org.tensorflow.lite.support.image.TensorImage
 import org.tensorflow.lite.task.core.vision.ImageProcessingOptions
 import java.io.ByteArrayOutputStream
+import android.graphics.Bitmap
+
+
+
 
 fun ImageProxy.toTensorImage(): TensorImage = TensorImage.fromBitmap(this.toBitmap())
 
@@ -39,7 +43,7 @@ private fun YuvImage.toBitmap(): Bitmap? {
     return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
 }
 
-private fun yuv420888ToNv21(image: ImageProxy): ByteArray {
+ fun yuv420888ToNv21(image: ImageProxy): ByteArray {
     val pixelCount = image.cropRect.width() * image.cropRect.height()
     val pixelSizeBits = ImageFormat.getBitsPerPixel(ImageFormat.YUV_420_888)
     val outputBuffer = ByteArray(pixelCount * pixelSizeBits / 8)
@@ -47,7 +51,7 @@ private fun yuv420888ToNv21(image: ImageProxy): ByteArray {
     return outputBuffer
 }
 
-private fun imageToByteBuffer(image: ImageProxy, outputBuffer: ByteArray, pixelCount: Int) {
+fun imageToByteBuffer(image: ImageProxy, outputBuffer: ByteArray, pixelCount: Int) {
     assert(image.format == ImageFormat.YUV_420_888)
 
     val imageCrop = image.cropRect
@@ -160,4 +164,25 @@ private fun imageToByteBuffer(image: ImageProxy, outputBuffer: ByteArray, pixelC
             }
         }
     }
+}
+
+
+/** Rotates a bitmap if it is converted from a bytebuffer.  */
+fun rotateBitmap(
+    bitmap: Bitmap, rotationDegrees: Int, flipX: Boolean, flipY: Boolean
+): Bitmap? {
+    val matrix = Matrix()
+
+    // Rotate the image back to straight.
+    matrix.postRotate(rotationDegrees.toFloat())
+
+    // Mirror the image along the X or Y axis.
+    matrix.postScale(if (flipX) -1.0f else 1.0f, if (flipY) -1.0f else 1.0f)
+    val rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+
+    // Recycle the old bitmap if it has changed.
+    if (rotatedBitmap != bitmap) {
+        bitmap.recycle()
+    }
+    return rotatedBitmap
 }

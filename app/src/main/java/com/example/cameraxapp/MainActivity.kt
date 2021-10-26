@@ -3,12 +3,17 @@ package com.example.cameraxapp
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BlurMaskFilter
 import android.hardware.SensorManager
+import android.media.Image
 import android.net.Uri
 import android.util.Log
 import android.util.Size
 import android.view.Surface
+import android.view.View
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -22,6 +27,13 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
 import com.example.cameraxapp.OrientationManager.ScreenOrientation
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.face.FaceDetection
+import com.google.mlkit.vision.face.FaceDetectorOptions
+import kotlinx.android.synthetic.main.image_captured.view.*
+import java.io.FileNotFoundException
+import java.io.FileOutputStream
+import java.io.IOException
 
 typealias LumaListener = (luma: Double) -> Unit
 
@@ -43,9 +55,6 @@ class MainActivity : AppCompatActivity() {
                 this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS
             )
         }
-
-        // Set up the listener for take photo button
-        camera_capture_button.setOnClickListener { checkPhotoOrientationBeforeImageCapture() }
 
         outputDirectory = getOutputDirectory()
 
@@ -73,27 +82,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun checkPhotoOrientationBeforeImageCapture() {
-        if (imageCapture?.targetRotation == Surface.ROTATION_0 || imageCapture?.targetRotation == Surface.ROTATION_180) {
-            alertDialog(this, false){
-                setTitle("تنبيه")
-                setMessage("تم التقاط الصورة بطريقة عمودية، \n" +
-                        "\n" +
-                        "للتأكيد، الرجاء اختيار \"نعم\" ")
-                positiveButton(text = "نعم") {
-                    takePhoto()
-                    it.dismiss()
-                }
-                negativeButton {
-                    it.dismiss()
-                }
-            }.show()
-        } else {
-            takePhoto()
-        }
-    }
 
     private fun takePhoto() {
+
         // Get a stable reference of the modifiable image capture use case
         val imageCapture = imageCapture ?: return
 
@@ -128,6 +119,72 @@ class MainActivity : AppCompatActivity() {
             })
     }
 
+    private fun checkPhotoOrientationBeforeImageCapture(bitmap: Bitmap, orientation: Int) {
+        if (orientation == Surface.ROTATION_0 || orientation == Surface.ROTATION_180) {
+            alertDialog(this, false) {
+                setTitle("تنبيه")
+                setMessage(
+                    "تم التقاط الصورة بطريقة عمودية، \n" +
+                            "\n" +
+                            "للتأكيد، الرجاء اختيار \"نعم\" "
+                )
+                positiveButton(text = "نعم") {
+                    savePhoto(bitmap)
+                    it.dismiss()
+                }
+                negativeButton(text = "الغاء") {
+                    showCameraView()
+                    it.dismiss()
+                }
+            }.show()
+        } else {
+            savePhoto(bitmap)
+        }
+    }
+
+    private fun savePhoto(image: Bitmap) {
+
+        val photoFile = File(
+            outputDirectory,
+            SimpleDateFormat(
+                FILENAME_FORMAT, Locale.US
+            ).format(System.currentTimeMillis()) + ".jpg"
+        )
+
+        try {
+            val fos = FileOutputStream(photoFile)
+            image.compress(Bitmap.CompressFormat.JPEG, 90, fos)
+            fos.close()
+            showCameraView()
+            val savedUri = Uri.fromFile(photoFile)
+            val msg = "Photo capture succeeded: $savedUri"
+            Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
+        } catch (e: FileNotFoundException) {
+            Log.d(TAG, "File not found: " + e.message)
+        } catch (e: IOException) {
+            Log.d(TAG, "Error accessing file: " + e.message)
+        }
+
+    }
+
+    private fun hideCameraView(bitmap: Bitmap, orientation: Int) {
+        viewFinder.visibility = View.INVISIBLE
+        camera_capture_button.visibility = View.GONE
+        imageView.visibility = View.VISIBLE
+        imageView.image_view.setImageBitmap(bitmap)
+        imageView.saveImageBtn.setOnClickListener {
+            checkPhotoOrientationBeforeImageCapture(bitmap, orientation)
+        }
+        imageView.cancelImageBtn.setOnClickListener {
+            showCameraView()
+        }
+    }
+
+    private fun showCameraView() {
+        viewFinder.visibility = View.VISIBLE
+        camera_capture_button.visibility = View.VISIBLE
+        imageView.visibility = View.INVISIBLE
+    }
 
     private fun startCamera() {
         //This is used to bind the lifecycle of cameras to the lifecycle owner.
@@ -150,16 +207,23 @@ class MainActivity : AppCompatActivity() {
             imageCapture?.let {
                 setTargetRotation(it)
             }
+
+            val resolutionSize = Size(viewFinder.width, viewFinder.height)
+            val freezAnalyzer = FreezeAnalyzer { bitmap ->
+                runOnUiThread {
+                    detectFace(bitmap,checkCurrentOrientation())
+                }
+            }
+            camera_capture_button.setOnClickListener { freezAnalyzer.freeze() }
             val imageAnalyzer = ImageAnalysis.Builder()
-                .setTargetResolution(Size(640, 640))
-//                .setTargetAspectRatio(AspectRatio.RATIO_16_9)
+                .setTargetResolution(resolutionSize)
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
                 .also {
                     it.setAnalyzer(
                         cameraExecutor,
-                        BashirImageAnalyzer(BashirImageClassifier(this)) { score ->
-                            Log.d(TAG, "Score: $score")
-                        })
+                        freezAnalyzer
+                    )
                 }
 
             // Select back camera as a default
@@ -222,8 +286,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun checkCurrentOrientation(): Int {
+        return imageCapture!!.targetRotation
+    }
 
-    private fun setTargetRotation(imageCapture: ImageCapture) {
+    private fun setTargetRotation(imageCapture: ImageCapture): Int {
 
         OrientationManager(this, SensorManager.SENSOR_DELAY_NORMAL) { screenOrientation ->
             when (screenOrientation) {
@@ -242,7 +309,29 @@ class MainActivity : AppCompatActivity() {
             }
             imageCapture.targetRotation = screenOrientation.orientaion
         }.enable()
+        return imageCapture.targetRotation
+    }
 
+    @SuppressLint("UnsafeOptInUsageError")
+    private fun detectFace(bitmap: Bitmap, currentOrientation: Int) {
+        val faceDetectorOptions = FaceDetectorOptions.Builder()
+            .setMinFaceSize(0.05f).build()
+        val faceDetector = FaceDetection.getClient(faceDetectorOptions)
+        val inputImage =  InputImage.fromBitmap(bitmap, OrientationManager.getOrientationDegree(currentOrientation))
+        faceDetector.process(inputImage)
+            .addOnSuccessListener { faces ->
+                for (face in faces) {
+                    val bounds = face.boundingBox
+                    val rotY = face.headEulerAngleY // Head is rotated to the right rotY degrees
+                    val rotZ = face.headEulerAngleZ // Head is tilted sideways rotZ degrees
+                }
+                runOnUiThread {
+                    hideCameraView(bitmap, currentOrientation)
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("facedetection", "error -> ${e.message}")
+            }
     }
 
     companion object {
