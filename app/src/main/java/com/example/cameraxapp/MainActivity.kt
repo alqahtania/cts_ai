@@ -6,9 +6,9 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.BlurMaskFilter
+import android.graphics.Canvas
+import android.graphics.Rect
 import android.hardware.SensorManager
-import android.media.Image
 import android.net.Uri
 import android.util.Log
 import android.util.Size
@@ -22,14 +22,13 @@ import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
-import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
-import com.example.cameraxapp.OrientationManager.ScreenOrientation
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
+import io.alterac.blurkit.BlurKit
 import kotlinx.android.synthetic.main.image_captured.view.*
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
@@ -46,6 +45,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        BlurKit.init(this)
 
         // Request camera permissions
         if (allPermissionsGranted()) {
@@ -264,27 +264,6 @@ class MainActivity : AppCompatActivity() {
         cameraExecutor.shutdown()
     }
 
-    private class LuminosityAnalyzer(private val listener: LumaListener) : ImageAnalysis.Analyzer {
-
-        private fun ByteBuffer.toByteArray(): ByteArray {
-            rewind()    // Rewind the buffer to zero
-            val data = ByteArray(remaining())
-            get(data)   // Copy the buffer into a byte array
-            return data // Return the byte array
-        }
-
-        override fun analyze(image: ImageProxy) {
-
-            val buffer = image.planes[0].buffer
-            val data = buffer.toByteArray()
-            val pixels = data.map { it.toInt() and 0xFF }
-            val luma = pixels.average()
-
-            listener(luma)
-
-            image.close()
-        }
-    }
 
     private fun checkCurrentOrientation(): Int {
         return imageCapture!!.targetRotation
@@ -293,20 +272,20 @@ class MainActivity : AppCompatActivity() {
     private fun setTargetRotation(imageCapture: ImageCapture): Int {
 
         OrientationManager(this, SensorManager.SENSOR_DELAY_NORMAL) { screenOrientation ->
-            when (screenOrientation) {
-                ScreenOrientation.PORTRAIT -> {
-                    showToast("Portrait")
-                }
-                ScreenOrientation.LANDSCAPE -> {
-                    showToast("Landscape")
-                }
-                ScreenOrientation.REVERSED_PORTRAIT -> {
-                    showToast("Reversed Portrait")
-                }
-                ScreenOrientation.REVERSED_LANDSCAPE -> {
-                    showToast("Reversed Landscape")
-                }
-            }
+//            when (screenOrientation) {
+//                ScreenOrientation.PORTRAIT -> {
+//                    showToast("Portrait")
+//                }
+//                ScreenOrientation.LANDSCAPE -> {
+//                    showToast("Landscape")
+//                }
+//                ScreenOrientation.REVERSED_PORTRAIT -> {
+//                    showToast("Reversed Portrait")
+//                }
+//                ScreenOrientation.REVERSED_LANDSCAPE -> {
+//                    showToast("Reversed Landscape")
+//                }
+//            }
             imageCapture.targetRotation = screenOrientation.orientaion
         }.enable()
         return imageCapture.targetRotation
@@ -320,19 +299,43 @@ class MainActivity : AppCompatActivity() {
         val inputImage =  InputImage.fromBitmap(bitmap, OrientationManager.getOrientationDegree(currentOrientation))
         faceDetector.process(inputImage)
             .addOnSuccessListener { faces ->
+                var blurredFaces : Bitmap? = null
                 for (face in faces) {
                     val bounds = face.boundingBox
-                    val rotY = face.headEulerAngleY // Head is rotated to the right rotY degrees
-                    val rotZ = face.headEulerAngleZ // Head is tilted sideways rotZ degrees
+                    face.headEulerAngleX
+                    blurredFaces = blurFaces(bitmap, bounds)
                 }
                 runOnUiThread {
-                    hideCameraView(bitmap, currentOrientation)
+                    val msg = if(faces.size == 1) "${faces.size} person detected" else if (faces.size > 1) "${faces.size} people deteced" else "no people detected"
+                    showToast(msg)
+//                    val bluredBitmap = BlurKit.getInstance().blur(bitmap, 25)
+                    if(blurredFaces != null){
+                        hideCameraView(blurredFaces, currentOrientation)
+                    }else{
+                        hideCameraView(bitmap, currentOrientation)
+                    }
+
                 }
             }
             .addOnFailureListener { e ->
                 Log.e("facedetection", "error -> ${e.message}")
+                showToast("An error occurred while detecting faces")
             }
     }
+
+    private fun blurFaces(bitmap: Bitmap, rect: Rect): Bitmap? {
+        val w = rect.right - rect.left
+        val h = rect.bottom - rect.top
+        val rectBitmap = Bitmap.createBitmap(w, h, bitmap.config)
+        val canvas = Canvas(rectBitmap)
+        canvas.drawBitmap(bitmap, -rect.left.toFloat(), -rect.top.toFloat(), null)
+        val blurredBitmap = BlurKit.getInstance().blur(bitmap, 15)
+        val originalCanvas = Canvas(bitmap)
+        if(blurredBitmap != null)
+            originalCanvas.drawBitmap(blurredBitmap, rect.left.toFloat(), rect.top.toFloat(), null)
+        return bitmap
+    }
+
 
     companion object {
         private const val TAG = "CameraXBasic"
