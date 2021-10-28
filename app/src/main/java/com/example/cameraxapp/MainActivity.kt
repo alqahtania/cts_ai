@@ -7,6 +7,7 @@ import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Paint
 import android.graphics.Rect
 import android.hardware.SensorManager
 import android.net.Uri
@@ -284,7 +285,7 @@ class MainActivity : AppCompatActivity() {
         val blurredBitmap = BlurKit.getInstance().blur(rectBitmap, 25)
         val originalCanvas = Canvas(bitmap)
         if(blurredBitmap != null)
-            originalCanvas.drawBitmap(blurredBitmap, rect.left.toFloat(), rect.top.toFloat(), null)
+            originalCanvas.drawBitmap(blurredBitmap, rect.left.toFloat(), rect.top.toFloat(), Paint(Paint.FILTER_BITMAP_FLAG))
         return bitmap
     }
 
