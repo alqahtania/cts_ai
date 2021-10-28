@@ -82,64 +82,31 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
-    private fun takePhoto() {
-
-        // Get a stable reference of the modifiable image capture use case
-        val imageCapture = imageCapture ?: return
-
-        // Create time-stamped output file to hold the image
-        val photoFile = File(
-            outputDirectory,
-            SimpleDateFormat(
-                FILENAME_FORMAT, Locale.US
-            ).format(System.currentTimeMillis()) + ".jpg"
-        )
-
-        // Create output options object which contains file + metadata
-        val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
-
-
-        // Set up image capture listener, which is triggered after photo has
-        // been taken
-        imageCapture.takePicture(
-            outputOptions,
-            ContextCompat.getMainExecutor(this),
-            object : ImageCapture.OnImageSavedCallback {
-                override fun onError(exc: ImageCaptureException) {
-                    Log.e(TAG, "Photo capture failed: ${exc.message}", exc)
-                }
-
-                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                    val savedUri = Uri.fromFile(photoFile)
-                    val msg = "Photo capture succeeded: $savedUri"
-                    Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
-                    Log.d(TAG, msg)
-                }
-            })
-    }
-
     private fun checkPhotoOrientationBeforeImageCapture(bitmap: Bitmap, orientation: Int) {
         if (orientation == Surface.ROTATION_0 || orientation == Surface.ROTATION_180) {
-            alertDialog(this, false) {
-                setTitle("تنبيه")
-                setMessage(
-                    "تم التقاط الصورة بطريقة عمودية، \n" +
-                            "\n" +
-                            "للتأكيد، الرجاء اختيار \"نعم\" "
-                )
-                positiveButton(text = "نعم") {
-                    savePhoto(bitmap)
-                    it.dismiss()
-                }
-                negativeButton(text = "الغاء") {
-                    showCameraView()
-                    it.dismiss()
-                }
-            }.show()
+            showVerticalImageWarningDialog(bitmap)
         } else {
             savePhoto(bitmap)
         }
+    }
+
+    private fun showVerticalImageWarningDialog(bitmap: Bitmap){
+        alertDialog(this, false) {
+            setTitle("تنبيه")
+            setMessage(
+                "تم التقاط الصورة بطريقة عمودية، \n" +
+                        "\n" +
+                        "للتأكيد، الرجاء اختيار \"نعم\" "
+            )
+            positiveButton(text = "نعم") {
+                savePhoto(bitmap)
+                it.dismiss()
+            }
+            negativeButton(text = "الغاء") {
+                showCameraView()
+                it.dismiss()
+            }
+        }.show()
     }
 
     private fun savePhoto(image: Bitmap) {
@@ -270,22 +237,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setTargetRotation(imageCapture: ImageCapture): Int {
-
         OrientationManager(this, SensorManager.SENSOR_DELAY_NORMAL) { screenOrientation ->
-//            when (screenOrientation) {
-//                ScreenOrientation.PORTRAIT -> {
-//                    showToast("Portrait")
-//                }
-//                ScreenOrientation.LANDSCAPE -> {
-//                    showToast("Landscape")
-//                }
-//                ScreenOrientation.REVERSED_PORTRAIT -> {
-//                    showToast("Reversed Portrait")
-//                }
-//                ScreenOrientation.REVERSED_LANDSCAPE -> {
-//                    showToast("Reversed Landscape")
-//                }
-//            }
             imageCapture.targetRotation = screenOrientation.orientaion
         }.enable()
         return imageCapture.targetRotation
@@ -329,7 +281,7 @@ class MainActivity : AppCompatActivity() {
         val rectBitmap = Bitmap.createBitmap(w, h, bitmap.config)
         val canvas = Canvas(rectBitmap)
         canvas.drawBitmap(bitmap, -rect.left.toFloat(), -rect.top.toFloat(), null)
-        val blurredBitmap = BlurKit.getInstance().blur(bitmap, 15)
+        val blurredBitmap = BlurKit.getInstance().blur(rectBitmap, 25)
         val originalCanvas = Canvas(bitmap)
         if(blurredBitmap != null)
             originalCanvas.drawBitmap(blurredBitmap, rect.left.toFloat(), rect.top.toFloat(), null)

@@ -12,23 +12,6 @@ import android.graphics.Bitmap
 
 fun ImageProxy.toTensorImage(): TensorImage = TensorImage.fromBitmap(this.toBitmap())
 
-fun TensorImage.getImageProcessingOptions(bitmap: Bitmap) : ImageProcessingOptions{
-    val width = bitmap.width
-    val height = bitmap.height
-    val cropSize = minOf(width, height)
-    return ImageProcessingOptions.builder()
-        .setOrientation(ImageProcessingOptions.Orientation.TOP_LEFT)
-        .setRoi(
-            Rect(
-                (width - cropSize) / 2,
-                (height - cropSize) / 2,
-                (width + cropSize) / 2,
-                (height + cropSize) / 2
-            )
-        )
-        .build()
-}
-
 fun ImageProxy.toBitmap(): Bitmap? {
     val nv21 = yuv420888ToNv21(this)
     val yuvImage = YuvImage(nv21, ImageFormat.NV21, width, height, null)

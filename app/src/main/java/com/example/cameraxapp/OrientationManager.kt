@@ -44,7 +44,7 @@ class OrientationManager(private val context: Context, private val rate: Int, pr
             Surface.ROTATION_270 to 90)
 
         fun getOrientationDegree(targetRotation : Int) : Int{
-            return requireNotNull(ORIENTATIONS.get(targetRotation))
+            return requireNotNull(ORIENTATIONS[targetRotation])
         }
     }
 
