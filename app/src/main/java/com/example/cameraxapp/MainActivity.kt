@@ -5,10 +5,7 @@ import android.os.Bundle
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.Rect
+import android.graphics.*
 import android.hardware.SensorManager
 import android.net.Uri
 import android.util.Log
@@ -34,6 +31,15 @@ import kotlinx.android.synthetic.main.image_captured.view.*
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.IOException
+import android.graphics.PorterDuff
+
+import android.graphics.PorterDuffXfermode
+
+import android.graphics.Bitmap
+
+
+
+
 
 typealias LumaListener = (luma: Double) -> Unit
 
@@ -247,7 +253,7 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("UnsafeOptInUsageError")
     private fun detectFace(bitmap: Bitmap, currentOrientation: Int) {
         val faceDetectorOptions = FaceDetectorOptions.Builder()
-            .setMinFaceSize(0.05f).build()
+            .setMinFaceSize(0.01f).build()
         val faceDetector = FaceDetection.getClient(faceDetectorOptions)
         val inputImage =  InputImage.fromBitmap(bitmap, OrientationManager.getOrientationDegree(currentOrientation))
         faceDetector.process(inputImage)
@@ -261,7 +267,6 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
                     val msg = if(faces.size == 1) "${faces.size} person detected" else if (faces.size > 1) "${faces.size} people deteced" else "no people detected"
                     showToast(msg)
-//                    val bluredBitmap = BlurKit.getInstance().blur(bitmap, 25)
                     if(blurredFaces != null){
                         hideCameraView(blurredFaces, currentOrientation)
                     }else{
@@ -283,12 +288,37 @@ class MainActivity : AppCompatActivity() {
         val canvas = Canvas(rectBitmap)
         canvas.drawBitmap(bitmap, -rect.left.toFloat(), -rect.top.toFloat(), null)
         val blurredBitmap = BlurKit.getInstance().blur(rectBitmap, 25)
+        val circularBitmap = getCircularBitmap(blurredBitmap)
         val originalCanvas = Canvas(bitmap)
         if(blurredBitmap != null)
-            originalCanvas.drawBitmap(blurredBitmap, rect.left.toFloat(), rect.top.toFloat(), Paint(Paint.FILTER_BITMAP_FLAG))
+            originalCanvas.drawBitmap(circularBitmap, rect.left.toFloat(), rect.top.toFloat(), Paint(Paint.FILTER_BITMAP_FLAG))
         return bitmap
     }
 
+    fun getCircularBitmap(bitmap: Bitmap): Bitmap {
+        val output = Bitmap.createBitmap(
+            bitmap.width,
+            bitmap.height, Bitmap.Config.ARGB_8888
+        )
+        val canvas = Canvas(output)
+        val color = -0xbdbdbe
+        val paint = Paint()
+        val rect = Rect(0, 0, bitmap.width, bitmap.height)
+        paint.isAntiAlias = true
+        canvas.drawARGB(0, 0, 0, 0)
+        paint.color = color
+        // canvas.drawRoundRect(rectF, roundPx, roundPx, paint);
+        canvas.drawCircle(
+            (bitmap.width / 2).toFloat(), (bitmap.height / 2).toFloat(),
+            (bitmap.width / 2).toFloat(), paint
+        )
+        paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+        canvas.drawBitmap(bitmap, rect, rect, paint)
+        //Bitmap _bmp = Bitmap.createScaledBitmap(output, 60, 60, false);
+        //return _bmp;
+        return output
+    }
+    
 
     companion object {
         private const val TAG = "CameraXBasic"
