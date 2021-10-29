@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
-import android.graphics.*
 import android.hardware.SensorManager
 import android.net.Uri
 import android.util.Log
@@ -31,16 +30,8 @@ import kotlinx.android.synthetic.main.image_captured.view.*
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.IOException
-import android.graphics.PorterDuff
-
-import android.graphics.PorterDuffXfermode
 
 import android.graphics.Bitmap
-
-
-
-
-
 typealias LumaListener = (luma: Double) -> Unit
 
 class MainActivity : AppCompatActivity() {
@@ -256,13 +247,14 @@ class MainActivity : AppCompatActivity() {
             .setMinFaceSize(0.01f).build()
         val faceDetector = FaceDetection.getClient(faceDetectorOptions)
         val inputImage =  InputImage.fromBitmap(bitmap, OrientationManager.getOrientationDegree(currentOrientation))
+        val imageHelper = ImageHelper()
         faceDetector.process(inputImage)
             .addOnSuccessListener { faces ->
                 var blurredFaces : Bitmap? = null
                 for (face in faces) {
                     val bounds = face.boundingBox
                     face.headEulerAngleX
-                    blurredFaces = blurFaces(bitmap, bounds)
+                    blurredFaces = imageHelper.blurFace(bitmap, bounds, true)
                 }
                 runOnUiThread {
                     val msg = if(faces.size == 1) "${faces.size} person detected" else if (faces.size > 1) "${faces.size} people deteced" else "no people detected"
@@ -281,43 +273,7 @@ class MainActivity : AppCompatActivity() {
             }
     }
 
-    private fun blurFaces(bitmap: Bitmap, rect: Rect): Bitmap? {
-        val w = rect.right - rect.left
-        val h = rect.bottom - rect.top
-        val rectBitmap = Bitmap.createBitmap(w, h, bitmap.config)
-        val canvas = Canvas(rectBitmap)
-        canvas.drawBitmap(bitmap, -rect.left.toFloat(), -rect.top.toFloat(), null)
-        val blurredBitmap = BlurKit.getInstance().blur(rectBitmap, 25)
-        val circularBitmap = getCircularBitmap(blurredBitmap)
-        val originalCanvas = Canvas(bitmap)
-        if(blurredBitmap != null)
-            originalCanvas.drawBitmap(circularBitmap, rect.left.toFloat(), rect.top.toFloat(), Paint(Paint.FILTER_BITMAP_FLAG))
-        return bitmap
-    }
 
-    fun getCircularBitmap(bitmap: Bitmap): Bitmap {
-        val output = Bitmap.createBitmap(
-            bitmap.width,
-            bitmap.height, Bitmap.Config.ARGB_8888
-        )
-        val canvas = Canvas(output)
-        val color = -0xbdbdbe
-        val paint = Paint()
-        val rect = Rect(0, 0, bitmap.width, bitmap.height)
-        paint.isAntiAlias = true
-        canvas.drawARGB(0, 0, 0, 0)
-        paint.color = color
-        // canvas.drawRoundRect(rectF, roundPx, roundPx, paint);
-        canvas.drawCircle(
-            (bitmap.width / 2).toFloat(), (bitmap.height / 2).toFloat(),
-            (bitmap.width / 2).toFloat(), paint
-        )
-        paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
-        canvas.drawBitmap(bitmap, rect, rect, paint)
-        //Bitmap _bmp = Bitmap.createScaledBitmap(output, 60, 60, false);
-        //return _bmp;
-        return output
-    }
     
 
     companion object {
