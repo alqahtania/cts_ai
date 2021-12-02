@@ -105,6 +105,23 @@ class MainActivity : AppCompatActivity() {
                 it.dismiss()
             }
         }.show()
+
+        alertDialog(this, false) {
+            setTitle("بيه")
+            setMessage(
+                "تم التقاط الصورة بطريقة عمودية، \n" +
+                        "\n" +
+                        "للتأكيد، الرجاء اختيار \"نعم\" "
+            )
+            positiveButton(text = "نعم") {
+                savePhoto(bitmap)
+                it.dismiss()
+            }
+            negativeButton(text = "الغاء") {
+                showCameraView()
+                it.dismiss()
+            }
+        }.show()
     }
 
     private fun savePhoto(image: Bitmap) {
@@ -246,15 +263,24 @@ class MainActivity : AppCompatActivity() {
         val faceDetectorOptions = FaceDetectorOptions.Builder()
             .setMinFaceSize(0.01f).build()
         val faceDetector = FaceDetection.getClient(faceDetectorOptions)
-        val inputImage =  InputImage.fromBitmap(bitmap, OrientationManager.getOrientationDegree(currentOrientation))
+        var originalBitmap = bitmap
+        val inputImage =  InputImage.fromBitmap(originalBitmap, OrientationManager.getOrientationDegree(currentOrientation))
+        Toast.makeText(this, "${OrientationManager.getOrientationDegree(currentOrientation)}", Toast.LENGTH_SHORT).show()
         val imageHelper = ImageHelper()
         faceDetector.process(inputImage)
             .addOnSuccessListener { faces ->
                 var blurredFaces : Bitmap? = null
+                if(currentOrientation != 0 && currentOrientation != 2){
+                    originalBitmap = rotateBitmap(bitmap, OrientationManager.getOrientationDegree(currentOrientation), false, false)!!
+                }
                 for (face in faces) {
                     val bounds = face.boundingBox
                     face.headEulerAngleX
-                    blurredFaces = imageHelper.blurFace(bitmap, bounds, true)
+
+                    blurredFaces = imageHelper.blurFace(originalBitmap, bounds, true)
+                }
+                if(currentOrientation != 0 && currentOrientation != 2 && blurredFaces != null){
+                    blurredFaces = rotateBitmap(blurredFaces, OrientationManager.getOrientationDegree(currentOrientation), false, false)!!
                 }
                 runOnUiThread {
                     val msg = if(faces.size == 1) "${faces.size} person detected" else if (faces.size > 1) "${faces.size} people deteced" else "no people detected"
@@ -262,7 +288,7 @@ class MainActivity : AppCompatActivity() {
                     if(blurredFaces != null){
                         hideCameraView(blurredFaces, currentOrientation)
                     }else{
-                        hideCameraView(bitmap, currentOrientation)
+                        hideCameraView(originalBitmap, currentOrientation)
                     }
 
                 }
@@ -274,7 +300,7 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    
+
 
     companion object {
         private const val TAG = "CameraXBasic"

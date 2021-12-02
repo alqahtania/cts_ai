@@ -169,3 +169,9 @@ fun rotateBitmap(
     }
     return rotatedBitmap
 }
+
+// Canvas only accepts mutable bitmaps
+fun Bitmap.convertToMutableBitmap() : Bitmap{
+    val workingBitmap = Bitmap.createBitmap(this)
+    return workingBitmap.copy(Bitmap.Config.ARGB_8888, true)
+}
