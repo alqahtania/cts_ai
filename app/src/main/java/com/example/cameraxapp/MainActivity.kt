@@ -280,7 +280,7 @@ class MainActivity : AppCompatActivity() {
                     blurredFaces = imageHelper.blurFace(originalBitmap, bounds, true)
                 }
                 if(currentOrientation != 0 && currentOrientation != 2 && blurredFaces != null){
-                    blurredFaces = rotateBitmap(blurredFaces, OrientationManager.getOrientationDegree(currentOrientation), false, false)!!
+                    blurredFaces = rotateBitmap(blurredFaces, OrientationManager.getOrientationDegree(currentOrientation), true, true)!!
                 }
                 runOnUiThread {
                     val msg = if(faces.size == 1) "${faces.size} person detected" else if (faces.size > 1) "${faces.size} people deteced" else "no people detected"
