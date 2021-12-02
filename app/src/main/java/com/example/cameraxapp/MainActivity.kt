@@ -319,7 +319,7 @@ class MainActivity : AppCompatActivity() {
 
         recognizables.forEach {
             if(it.name.trim().contains("vehicles")){
-                if(it.confidence > 0.8){
+                if(it.confidence > VEHICLES_CONFIDENCE_THRESHOLD){
                     return true
                 }
             }
@@ -333,5 +333,6 @@ class MainActivity : AppCompatActivity() {
         private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
         private const val REQUEST_CODE_PERMISSIONS = 10
         private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA)
+        private val VEHICLES_CONFIDENCE_THRESHOLD = 0.60
     }
 }
