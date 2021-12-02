@@ -32,6 +32,8 @@ import java.io.FileOutputStream
 import java.io.IOException
 
 import android.graphics.Bitmap
+import com.example.cameraxapp.imageclassification.Recognizable
+
 typealias LumaListener = (luma: Double) -> Unit
 
 class MainActivity : AppCompatActivity() {
@@ -80,22 +82,25 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun checkPhotoOrientationBeforeImageCapture(bitmap: Bitmap, orientation: Int, facesDetected : Boolean) {
+    private fun checkPhotoOrientationBeforeImageCapture(bitmap: Bitmap, orientation: Int, facesDetected : Boolean, imageContainsVehicle : Boolean) {
         val verticalOrientationWarning = orientation == Surface.ROTATION_0 || orientation == Surface.ROTATION_180
-        if (verticalOrientationWarning || facesDetected) {
-            showWarningsDialog(bitmap, verticalOrientationWarning, facesDetected)
+        if (verticalOrientationWarning || facesDetected || !imageContainsVehicle) {
+            showWarningsDialog(bitmap, verticalOrientationWarning, facesDetected, imageContainsVehicle)
         } else {
             savePhoto(bitmap)
         }
     }
 
-    private fun showWarningsDialog(bitmap: Bitmap, verticalImageWarning : Boolean, facesDetectedWarning : Boolean){
+    private fun showWarningsDialog(bitmap: Bitmap, verticalImageWarning : Boolean, facesDetectedWarning : Boolean, imageContainsVehicle : Boolean){
         var message = ""
         if(verticalImageWarning){
             message = getString(R.string.vertical_message)
         }
         if(facesDetectedWarning){
             message += "\n${getString(R.string.faces_message)}"
+        }
+        if(!imageContainsVehicle){
+            message += "\n${getString(R.string.vehicles_message)}"
         }
         message += "\n${getString(R.string.confirm_dialog)}"
         alertDialog(this, false) {
@@ -130,7 +135,7 @@ class MainActivity : AppCompatActivity() {
             fos.close()
             showCameraView()
             val savedUri = Uri.fromFile(photoFile)
-            val msg = "Photo capture succeeded: $savedUri"
+            val msg = "Photo saved successfully: $savedUri"
             Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
         } catch (e: FileNotFoundException) {
             Log.d(TAG, "File not found: " + e.message)
@@ -140,13 +145,13 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun hideCameraView(bitmap: Bitmap, orientation: Int, facesDetected : Boolean) {
+    private fun hideCameraView(bitmap: Bitmap, orientation: Int, facesDetected : Boolean, imageContainsVehicle : Boolean) {
         viewFinder.visibility = View.INVISIBLE
         camera_capture_button.visibility = View.GONE
         imageView.visibility = View.VISIBLE
         imageView.image_view.setImageBitmap(bitmap)
         imageView.saveImageBtn.setOnClickListener {
-            checkPhotoOrientationBeforeImageCapture(bitmap, orientation, facesDetected)
+            checkPhotoOrientationBeforeImageCapture(bitmap, orientation, facesDetected, imageContainsVehicle)
         }
         imageView.cancelImageBtn.setOnClickListener {
             showCameraView()
@@ -182,9 +187,9 @@ class MainActivity : AppCompatActivity() {
             }
 
             val resolutionSize = Size(viewFinder.width, viewFinder.height)
-            val freezAnalyzer = FreezeAnalyzer { bitmap ->
+            val freezAnalyzer = FreezeAnalyzer(this) { bitmap, recognizables ->
                 runOnUiThread {
-                    detectFace(bitmap,checkCurrentOrientation())
+                    detectFace(bitmap,checkCurrentOrientation(), imageContainsAVehicle(recognizables))
                 }
             }
             camera_capture_button.setOnClickListener { freezAnalyzer.freeze() }
@@ -250,13 +255,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     @SuppressLint("UnsafeOptInUsageError")
-    private fun detectFace(bitmap: Bitmap, currentOrientation: Int) {
+    private fun detectFace(bitmap: Bitmap, currentOrientation: Int, imageContainsVehicle : Boolean) {
         val faceDetectorOptions = FaceDetectorOptions.Builder()
             .setMinFaceSize(0.01f).build()
         val faceDetector = FaceDetection.getClient(faceDetectorOptions)
         var originalBitmap = bitmap
         val inputImage =  InputImage.fromBitmap(originalBitmap, OrientationManager.getOrientationDegree(currentOrientation))
-        Toast.makeText(this, "${OrientationManager.getOrientationDegree(currentOrientation)}", Toast.LENGTH_SHORT).show()
         val imageHelper = ImageHelper()
         faceDetector.process(inputImage)
             .addOnSuccessListener { faces ->
@@ -266,25 +270,26 @@ class MainActivity : AppCompatActivity() {
                 for (face in faces) {
                     val bounds = face.boundingBox
                     face.headEulerAngleX
-                    // we need to rotate the image if the orientation is not vertical (0 or 180) to blur the right coordinate from face.boundingBox returned from the api
+                    // we need to rotate the image if the orientation is not vertical (0) to blur the right coordinate from face.boundingBox returned from the api
                     // we put it inside the loop so we don't touch the original image if no faces are detected
-                    if(currentOrientation != 0 && currentOrientation != 2 && !accessed){
+                    // if image is taken vertically but upside down we rotate it back up
+                    if(currentOrientation != 0 && !accessed){
                         accessed = true
                         originalBitmap = rotateBitmap(bitmap, OrientationManager.getOrientationDegree(currentOrientation), false, false)!!
                     }
                     blurredFaces = imageHelper.blurFace(originalBitmap, bounds, true)
                 }
                 // after the
-                if(currentOrientation != 0 && currentOrientation != 2 && blurredFaces != null){
+                if(currentOrientation != 0 && blurredFaces != null){
                     blurredFaces = rotateBitmap(blurredFaces, OrientationManager.getOrientationDegree(currentOrientation), true, true)!!
                 }
                 runOnUiThread {
-                    val msg = if(faces.size == 1) "${faces.size} person detected" else if (faces.size > 1) "${faces.size} people deteced" else "no people detected"
-                    showToast(msg)
+//                    val msg = if(faces.size == 1) "${faces.size} person detected" else if (faces.size > 1) "${faces.size} people deteced" else "no people detected"
+//                    showToast(msg)
                     if(blurredFaces != null){
-                        hideCameraView(blurredFaces, currentOrientation, true)
+                        hideCameraView(blurredFaces, currentOrientation, true, imageContainsVehicle)
                     }else{
-                        hideCameraView(originalBitmap, currentOrientation, false)
+                        hideCameraView(originalBitmap, currentOrientation, false, imageContainsVehicle)
                     }
 
                 }
@@ -296,6 +301,31 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    private fun imageContainsAVehicle(recognizables : List<Recognizable>) : Boolean{
+        // TODO remove this dialog
+        alertDialog(this, false) {
+            setTitle(getString(R.string.dialog_title))
+            setMessage(
+                recognizables.toString()
+            )
+            negativeButton(text = getString(R.string.dialog_cancel_btn)) {
+                it.dismiss()
+            }
+            positiveButton(text = getString(R.string.dialog_ok_btn)) {
+                it.dismiss()
+            }
+
+        }.show()
+
+        recognizables.forEach {
+            if(it.name.trim().contains("vehicles")){
+                if(it.confidence > 0.8){
+                    return true
+                }
+            }
+        }
+        return false
+    }
 
 
     companion object {
