@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">CameraX App</string>
+    <string name="dialog_title">Warning!</string>
+    <string name="vertical_message">- Taken image is in vertical position</string>
+    <string name="faces_message">- Faces in taken image have been blurred</string>
+    <string name="vehicles_message">- There are no any vehicles in taken image</string>
+    <string name="confirm_dialog">To confirm, please click Yes</string>
+    <string name="dialog_ok_btn">OK</string>
+    <string name="dialog_cancel_btn">Cancel</string>
 </resources>

@@ -19,10 +19,10 @@ fun alertDialog(context: Context, cancellable : Boolean = true, dialogBuilder: A
     return builder.create()
 }
 
-fun AlertDialog.Builder.negativeButton(text: String = "Dismiss", handleClick: (dialogInterface: DialogInterface) -> Unit = {}) {
+fun AlertDialog.Builder.positiveButton(text: String = "Continue", handleClick: (dialogInterface: DialogInterface) -> Unit = {}) {
     this.setPositiveButton(text) { dialogInterface, which -> handleClick(dialogInterface) }
 }
-
-fun AlertDialog.Builder.positiveButton(text: String = "Continue", handleClick: (dialogInterface: DialogInterface) -> Unit = {}) {
+fun AlertDialog.Builder.negativeButton(text: String = "Dismiss", handleClick: (dialogInterface: DialogInterface) -> Unit = {}) {
     this.setNegativeButton(text) { dialogInterface, which -> handleClick(dialogInterface) }
 }
+

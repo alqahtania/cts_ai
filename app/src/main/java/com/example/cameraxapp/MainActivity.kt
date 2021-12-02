@@ -80,47 +80,38 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun checkPhotoOrientationBeforeImageCapture(bitmap: Bitmap, orientation: Int) {
-        if (orientation == Surface.ROTATION_0 || orientation == Surface.ROTATION_180) {
-            showVerticalImageWarningDialog(bitmap)
+    private fun checkPhotoOrientationBeforeImageCapture(bitmap: Bitmap, orientation: Int, facesDetected : Boolean) {
+        val verticalOrientationWarning = orientation == Surface.ROTATION_0 || orientation == Surface.ROTATION_180
+        if (verticalOrientationWarning || facesDetected) {
+            showWarningsDialog(bitmap, verticalOrientationWarning, facesDetected)
         } else {
             savePhoto(bitmap)
         }
     }
 
-    private fun showVerticalImageWarningDialog(bitmap: Bitmap){
+    private fun showWarningsDialog(bitmap: Bitmap, verticalImageWarning : Boolean, facesDetectedWarning : Boolean){
+        var message = ""
+        if(verticalImageWarning){
+            message = getString(R.string.vertical_message)
+        }
+        if(facesDetectedWarning){
+            message += "\n${getString(R.string.faces_message)}"
+        }
+        message += "\n${getString(R.string.confirm_dialog)}"
         alertDialog(this, false) {
-            setTitle("تنبيه")
+            setTitle(getString(R.string.dialog_title))
             setMessage(
-                "تم التقاط الصورة بطريقة عمودية، \n" +
-                        "\n" +
-                        "للتأكيد، الرجاء اختيار \"نعم\" "
+               message
             )
-            positiveButton(text = "نعم") {
-                savePhoto(bitmap)
-                it.dismiss()
-            }
-            negativeButton(text = "الغاء") {
+            negativeButton(text = getString(R.string.dialog_cancel_btn)) {
                 showCameraView()
                 it.dismiss()
             }
-        }.show()
+            positiveButton(text = getString(R.string.dialog_ok_btn)) {
+                savePhoto(bitmap)
+                it.dismiss()
+            }
 
-        alertDialog(this, false) {
-            setTitle("بيه")
-            setMessage(
-                "تم التقاط الصورة بطريقة عمودية، \n" +
-                        "\n" +
-                        "للتأكيد، الرجاء اختيار \"نعم\" "
-            )
-            positiveButton(text = "نعم") {
-                savePhoto(bitmap)
-                it.dismiss()
-            }
-            negativeButton(text = "الغاء") {
-                showCameraView()
-                it.dismiss()
-            }
         }.show()
     }
 
@@ -149,13 +140,13 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun hideCameraView(bitmap: Bitmap, orientation: Int) {
+    private fun hideCameraView(bitmap: Bitmap, orientation: Int, facesDetected : Boolean) {
         viewFinder.visibility = View.INVISIBLE
         camera_capture_button.visibility = View.GONE
         imageView.visibility = View.VISIBLE
         imageView.image_view.setImageBitmap(bitmap)
         imageView.saveImageBtn.setOnClickListener {
-            checkPhotoOrientationBeforeImageCapture(bitmap, orientation)
+            checkPhotoOrientationBeforeImageCapture(bitmap, orientation, facesDetected)
         }
         imageView.cancelImageBtn.setOnClickListener {
             showCameraView()
@@ -270,15 +261,20 @@ class MainActivity : AppCompatActivity() {
         faceDetector.process(inputImage)
             .addOnSuccessListener { faces ->
                 var blurredFaces : Bitmap? = null
-                if(currentOrientation != 0 && currentOrientation != 2){
-                    originalBitmap = rotateBitmap(bitmap, OrientationManager.getOrientationDegree(currentOrientation), false, false)!!
-                }
+                // to rotate the image once in the for loop
+                var accessed = false
                 for (face in faces) {
                     val bounds = face.boundingBox
                     face.headEulerAngleX
-
+                    // we need to rotate the image if the orientation is not vertical (0 or 180) to blur the right coordinate from face.boundingBox returned from the api
+                    // we put it inside the loop so we don't touch the original image if no faces are detected
+                    if(currentOrientation != 0 && currentOrientation != 2 && !accessed){
+                        accessed = true
+                        originalBitmap = rotateBitmap(bitmap, OrientationManager.getOrientationDegree(currentOrientation), false, false)!!
+                    }
                     blurredFaces = imageHelper.blurFace(originalBitmap, bounds, true)
                 }
+                // after the
                 if(currentOrientation != 0 && currentOrientation != 2 && blurredFaces != null){
                     blurredFaces = rotateBitmap(blurredFaces, OrientationManager.getOrientationDegree(currentOrientation), true, true)!!
                 }
@@ -286,9 +282,9 @@ class MainActivity : AppCompatActivity() {
                     val msg = if(faces.size == 1) "${faces.size} person detected" else if (faces.size > 1) "${faces.size} people deteced" else "no people detected"
                     showToast(msg)
                     if(blurredFaces != null){
-                        hideCameraView(blurredFaces, currentOrientation)
+                        hideCameraView(blurredFaces, currentOrientation, true)
                     }else{
-                        hideCameraView(originalBitmap, currentOrientation)
+                        hideCameraView(originalBitmap, currentOrientation, false)
                     }
 
                 }

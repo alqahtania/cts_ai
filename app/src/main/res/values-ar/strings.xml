@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dialog_title">تنبيه!</string>
+    <string name="vertical_message">- تم التقاط الصورة بطريقة عمودية</string>
+    <string name="faces_message">- تم تعتيم الوجوه في الصورة الملتقطة</string>
+    <string name="vehicles_message">- لا توجد أي مركبات في الصورة الملتقطة</string>
+    <string name="confirm_dialog">للتأكيد، الرجاء اختيار "نعم"</string>
+    <string name="dialog_ok_btn">نعم</string>
+    <string name="dialog_cancel_btn">الغاء</string>
+</resources>
