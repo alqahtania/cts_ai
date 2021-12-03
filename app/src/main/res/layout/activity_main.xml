@@ -7,13 +7,14 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <Button
+    <ImageButton
         android:id="@+id/camera_capture_button"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
         android:layout_marginBottom="50dp"
-        android:scaleType="fitCenter"
-        android:text="Take Photo"
+        android:src="@drawable/ic_baseline_photo_camera_24"
+        android:background="@drawable/round_button"
+        android:foreground="?android:attr/selectableItemBackgroundBorderless"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"

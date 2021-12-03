@@ -16,6 +16,12 @@ local.properties
 /app/src/main/ml/mobilenet_v1_1.0_224.tflite
 /app/src/main/ml/mobilenet_v1_1.0_224_quant.tflite
 /app/src/main/ml/yolov5s.tflite
+/lib_task_api/build/.transforms/0a550ce25327f9030a069d33da8492c7/transformed/debug/org/tensorflow/lite/examples/detection/tflite/BuildConfig.dex
 /lib_task_api/build/.transforms/846c46e8075d736332402c57675e5454/transformed/classes/classes.dex
 /lib_task_api/build/intermediates/runtime_library_classes_jar/debug/classes.jar
+/lib_task_api/build/.transforms/0a550ce25327f9030a069d33da8492c7/transformed/desugar_graph.bin
+/lib_task_api/build/.transforms/0a550ce25327f9030a069d33da8492c7/transformed/debug/org/tensorflow/lite/examples/detection/tflite/Detector$Recognition.dex
+/lib_task_api/build/.transforms/0a550ce25327f9030a069d33da8492c7/transformed/debug/org/tensorflow/lite/examples/detection/tflite/Detector.dex
+/lib_task_api/build/.transforms/0a550ce25327f9030a069d33da8492c7/results.bin
 /lib_task_api/build/.transforms/846c46e8075d736332402c57675e5454/results.bin
+/lib_task_api/build/.transforms/0a550ce25327f9030a069d33da8492c7/transformed/debug/org/tensorflow/lite/examples/detection/tflite/TFLiteObjectDetectionAPIModel.dex

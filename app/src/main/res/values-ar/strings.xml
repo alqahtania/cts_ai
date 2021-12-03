@@ -8,5 +8,6 @@
     <string name="dialog_ok_btn">نعم</string>
     <string name="dialog_cancel_btn">الغاء</string>
     <string name="save_photo">حفظ</string>
+    <string name="take_photo">التقط الصورة</string>
 
 </resources>
