@@ -9,8 +9,6 @@ import android.hardware.SensorManager
 import android.net.Uri
 import android.util.Log
 import android.util.Size
-import android.view.Surface
-import android.view.View
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -32,7 +30,15 @@ import java.io.FileOutputStream
 import java.io.IOException
 
 import android.graphics.Bitmap
-import com.example.cameraxapp.imageclassification.Recognizable
+import android.os.Build
+import android.view.*
+import com.example.cameraxapp.util.Constants.BICYCLE
+import com.example.cameraxapp.util.Constants.BUS
+import com.example.cameraxapp.util.Constants.CAR
+import com.example.cameraxapp.util.Constants.MOTORCYCLE
+import com.example.cameraxapp.util.Constants.TRUCK
+import com.example.cameraxapp.util.ImageHelper
+import org.tensorflow.lite.examples.detection.tflite.Detector
 
 typealias LumaListener = (luma: Double) -> Unit
 
@@ -45,6 +51,21 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        // remove title
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val controller = window?.insetsController
+
+            if (controller != null) {
+                controller.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+                controller.systemBarsBehavior =
+                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
+        } else {
+            window.setFlags(
+                WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN
+            )
+        }
         BlurKit.init(this)
 
         // Request camera permissions
@@ -82,31 +103,47 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun checkPhotoOrientationBeforeImageCapture(bitmap: Bitmap, orientation: Int, facesDetected : Boolean, imageContainsVehicle : Boolean) {
-        val verticalOrientationWarning = orientation == Surface.ROTATION_0 || orientation == Surface.ROTATION_180
+    private fun checkPhotoOrientationBeforeImageCapture(
+        bitmap: Bitmap,
+        orientation: Int,
+        facesDetected: Boolean,
+        imageContainsVehicle: Boolean
+    ) {
+        val verticalOrientationWarning =
+            orientation == Surface.ROTATION_0 || orientation == Surface.ROTATION_180
         if (verticalOrientationWarning || facesDetected || !imageContainsVehicle) {
-            showWarningsDialog(bitmap, verticalOrientationWarning, facesDetected, imageContainsVehicle)
+            showWarningsDialog(
+                bitmap,
+                verticalOrientationWarning,
+                facesDetected,
+                imageContainsVehicle
+            )
         } else {
             savePhoto(bitmap)
         }
     }
 
-    private fun showWarningsDialog(bitmap: Bitmap, verticalImageWarning : Boolean, facesDetectedWarning : Boolean, imageContainsVehicle : Boolean){
+    private fun showWarningsDialog(
+        bitmap: Bitmap,
+        verticalImageWarning: Boolean,
+        facesDetectedWarning: Boolean,
+        imageContainsVehicle: Boolean
+    ) {
         var message = ""
-        if(verticalImageWarning){
+        if (verticalImageWarning) {
             message = getString(R.string.vertical_message)
         }
-        if(facesDetectedWarning){
+        if (facesDetectedWarning) {
             message += "\n${getString(R.string.faces_message)}"
         }
-        if(!imageContainsVehicle){
+        if (!imageContainsVehicle) {
             message += "\n${getString(R.string.vehicles_message)}"
         }
         message += "\n${getString(R.string.confirm_dialog)}"
         alertDialog(this, false) {
             setTitle(getString(R.string.dialog_title))
             setMessage(
-               message
+                message
             )
             negativeButton(text = getString(R.string.dialog_cancel_btn)) {
                 showCameraView()
@@ -145,13 +182,23 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun hideCameraView(bitmap: Bitmap, orientation: Int, facesDetected : Boolean, imageContainsVehicle : Boolean) {
+    private fun hideCameraView(
+        bitmap: Bitmap,
+        orientation: Int,
+        facesDetected: Boolean,
+        imageContainsVehicle: Boolean
+    ) {
         viewFinder.visibility = View.INVISIBLE
         camera_capture_button.visibility = View.GONE
         imageView.visibility = View.VISIBLE
         imageView.image_view.setImageBitmap(bitmap)
         imageView.saveImageBtn.setOnClickListener {
-            checkPhotoOrientationBeforeImageCapture(bitmap, orientation, facesDetected, imageContainsVehicle)
+            checkPhotoOrientationBeforeImageCapture(
+                bitmap,
+                orientation,
+                facesDetected,
+                imageContainsVehicle
+            )
         }
         imageView.cancelImageBtn.setOnClickListener {
             showCameraView()
@@ -189,7 +236,11 @@ class MainActivity : AppCompatActivity() {
             val resolutionSize = Size(viewFinder.width, viewFinder.height)
             val freezAnalyzer = FreezeAnalyzer(this) { bitmap, recognizables ->
                 runOnUiThread {
-                    detectFace(bitmap,checkCurrentOrientation(), imageContainsAVehicle(recognizables))
+                    detectFace(
+                        bitmap,
+                        checkCurrentOrientation(),
+                        imageContainsAVehicle(recognizables)
+                    )
                 }
             }
             camera_capture_button.setOnClickListener { freezAnalyzer.freeze() }
@@ -255,16 +306,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     @SuppressLint("UnsafeOptInUsageError")
-    private fun detectFace(bitmap: Bitmap, currentOrientation: Int, imageContainsVehicle : Boolean) {
+    private fun detectFace(bitmap: Bitmap, currentOrientation: Int, imageContainsVehicle: Boolean) {
         val faceDetectorOptions = FaceDetectorOptions.Builder()
             .setMinFaceSize(0.01f).build()
         val faceDetector = FaceDetection.getClient(faceDetectorOptions)
         var originalBitmap = bitmap
-        val inputImage =  InputImage.fromBitmap(originalBitmap, OrientationManager.getOrientationDegree(currentOrientation))
+        val inputImage = InputImage.fromBitmap(
+            originalBitmap,
+            OrientationManager.getOrientationDegree(currentOrientation)
+        )
         val imageHelper = ImageHelper()
         faceDetector.process(inputImage)
             .addOnSuccessListener { faces ->
-                var blurredFaces : Bitmap? = null
+                var blurredFaces: Bitmap? = null
                 // to rotate the image once in the for loop
                 var accessed = false
                 for (face in faces) {
@@ -273,23 +327,38 @@ class MainActivity : AppCompatActivity() {
                     // we need to rotate the image if the orientation is not vertical (0) to blur the right coordinate from face.boundingBox returned from the api
                     // we put it inside the loop so we don't touch the original image if no faces are detected
                     // if image is taken vertically but upside down we rotate it back up
-                    if(currentOrientation != 0 && !accessed){
+                    if (currentOrientation != 0 && !accessed) {
                         accessed = true
-                        originalBitmap = rotateBitmap(bitmap, OrientationManager.getOrientationDegree(currentOrientation), false, false)!!
+                        originalBitmap = rotateBitmap(
+                            bitmap,
+                            OrientationManager.getOrientationDegree(currentOrientation),
+                            false,
+                            false
+                        )!!
                     }
                     blurredFaces = imageHelper.blurFace(originalBitmap, bounds, true)
                 }
                 // after the
-                if(currentOrientation != 0 && blurredFaces != null){
-                    blurredFaces = rotateBitmap(blurredFaces, OrientationManager.getOrientationDegree(currentOrientation), true, true)!!
+                if (currentOrientation != 0 && blurredFaces != null) {
+                    blurredFaces = rotateBitmap(
+                        blurredFaces,
+                        OrientationManager.getOrientationDegree(currentOrientation),
+                        true,
+                        true
+                    )!!
                 }
                 runOnUiThread {
 //                    val msg = if(faces.size == 1) "${faces.size} person detected" else if (faces.size > 1) "${faces.size} people deteced" else "no people detected"
 //                    showToast(msg)
-                    if(blurredFaces != null){
+                    if (blurredFaces != null) {
                         hideCameraView(blurredFaces, currentOrientation, true, imageContainsVehicle)
-                    }else{
-                        hideCameraView(originalBitmap, currentOrientation, false, imageContainsVehicle)
+                    } else {
+                        hideCameraView(
+                            originalBitmap,
+                            currentOrientation,
+                            false,
+                            imageContainsVehicle
+                        )
                     }
 
                 }
@@ -301,12 +370,15 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    private fun imageContainsAVehicle(recognizables : List<Recognizable>) : Boolean{
+    private fun imageContainsAVehicle(recognizables: List<Detector.Recognition>): Boolean {
+        val vehiclesDetected = recognizables.filter {
+            it.title == CAR || it.title == MOTORCYCLE || it.title == BUS || it.title == TRUCK || it.title == BICYCLE
+        }
         // TODO remove this dialog
         alertDialog(this, false) {
             setTitle(getString(R.string.dialog_title))
             setMessage(
-                recognizables.toString()
+                if (vehiclesDetected.isNullOrEmpty()) "No vehicles detected" else vehiclesDetected.toString()
             )
             negativeButton(text = getString(R.string.dialog_cancel_btn)) {
                 it.dismiss()
@@ -317,14 +389,9 @@ class MainActivity : AppCompatActivity() {
 
         }.show()
 
-        recognizables.forEach {
-            if(it.name.trim().contains("vehicles")){
-                if(it.confidence > VEHICLES_CONFIDENCE_THRESHOLD){
-                    return true
-                }
-            }
+        return vehiclesDetected.any {
+            it.confidence > VEHICLES_CONFIDENCE_THRESHOLD
         }
-        return false
     }
 
 
@@ -333,6 +400,6 @@ class MainActivity : AppCompatActivity() {
         private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
         private const val REQUEST_CODE_PERMISSIONS = 10
         private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA)
-        private val VEHICLES_CONFIDENCE_THRESHOLD = 0.60
+        private val VEHICLES_CONFIDENCE_THRESHOLD = 0.35
     }
 }

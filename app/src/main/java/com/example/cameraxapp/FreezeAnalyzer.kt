@@ -5,9 +5,9 @@ import android.content.Context
 import android.graphics.Bitmap
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
-import com.example.cameraxapp.imageclassification.Recognizable
+import org.tensorflow.lite.examples.detection.tflite.Detector
 
-class FreezeAnalyzer(private val context: Context, private val callback: (Bitmap, List<Recognizable>) -> Unit) : ImageAnalysis.Analyzer {
+class FreezeAnalyzer(private val context: Context, private val callback: (Bitmap, List<Detector.Recognition>) -> Unit) : ImageAnalysis.Analyzer {
     private var flag = false
 
     @SuppressLint("UnsafeOptInUsageError")
@@ -17,7 +17,7 @@ class FreezeAnalyzer(private val context: Context, private val callback: (Bitmap
             val bitmapConversion = requireNotNull(image.toBitmap())
             val bitmap = rotateBitmap(bitmapConversion, image.imageInfo.rotationDegrees, false, false)
             if(bitmap != null){
-                VehiclesDetectionHelper(context, bitmap){
+                ObjectDetector(context, bitmap){
                     callback(bitmap, it)
                 }.detectObject()
             }
