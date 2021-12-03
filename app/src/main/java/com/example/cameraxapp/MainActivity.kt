@@ -386,14 +386,11 @@ class MainActivity : AppCompatActivity() {
         val message = "Car = $carHighestConfid%\nBus = $busHighestConfid%\nMotorcycle = $motorcycleHighestConfid%\nTruck = $truckHighestConfid%\nBicycle = $bicycleHighestConfid%"
         // TODO remove this dialog
         alertDialog(this, false) {
-            setTitle(getString(R.string.dialog_title))
             setMessage(
                 message
             )
-            negativeButton(text = getString(R.string.dialog_cancel_btn)) {
-                it.dismiss()
-            }
-            positiveButton(text = getString(R.string.dialog_ok_btn)) {
+
+            positiveButton(text = getString(R.string.dialog_cancel_btn)) {
                 it.dismiss()
             }
 
