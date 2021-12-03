@@ -208,6 +208,7 @@ class MainActivity : AppCompatActivity() {
     private fun showCameraView() {
         viewFinder.visibility = View.VISIBLE
         camera_capture_button.visibility = View.VISIBLE
+        camera_capture_button.isEnabled = true
         imageView.visibility = View.INVISIBLE
     }
 
@@ -243,7 +244,10 @@ class MainActivity : AppCompatActivity() {
                     )
                 }
             }
-            camera_capture_button.setOnClickListener { freezAnalyzer.freeze() }
+            camera_capture_button.setOnClickListener {
+                camera_capture_button.isEnabled = false
+                freezAnalyzer.freeze()
+            }
             val imageAnalyzer = ImageAnalysis.Builder()
                 .setTargetResolution(resolutionSize)
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
@@ -374,11 +378,17 @@ class MainActivity : AppCompatActivity() {
         val vehiclesDetected = recognizables.filter {
             it.title == CAR || it.title == MOTORCYCLE || it.title == BUS || it.title == TRUCK || it.title == BICYCLE
         }
+        val carHighestConfid = getHighestConfidenceForEachLabel(CAR, vehiclesDetected) * 100
+        val busHighestConfid = getHighestConfidenceForEachLabel(BUS, vehiclesDetected) * 100
+        val motorcycleHighestConfid = getHighestConfidenceForEachLabel(MOTORCYCLE, vehiclesDetected) * 100
+        val truckHighestConfid = getHighestConfidenceForEachLabel(TRUCK, vehiclesDetected) * 100
+        val bicycleHighestConfid = getHighestConfidenceForEachLabel(BICYCLE, vehiclesDetected) * 100
+        val message = "Car = $carHighestConfid%\nBus = $busHighestConfid%\nMotorcycle = $motorcycleHighestConfid%\nTruck = $truckHighestConfid%\nBicycle = $bicycleHighestConfid%"
         // TODO remove this dialog
         alertDialog(this, false) {
             setTitle(getString(R.string.dialog_title))
             setMessage(
-                if (vehiclesDetected.isNullOrEmpty()) "No vehicles detected" else vehiclesDetected.toString()
+                message
             )
             negativeButton(text = getString(R.string.dialog_cancel_btn)) {
                 it.dismiss()
@@ -394,6 +404,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun getHighestConfidenceForEachLabel(title : String, list : List<Detector.Recognition>) : Float{
+        return list.filter {
+            it.title == title
+        }.map {
+            it.confidence
+        }.maxOrNull() ?: 0.0f
+    }
 
     companion object {
         private const val TAG = "CameraXBasic"
