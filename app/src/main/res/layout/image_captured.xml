@@ -15,25 +15,25 @@
 
     <ImageButton
         android:id="@+id/cancelImageBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
         android:layout_marginEnd="26dp"
         android:layout_marginBottom="46dp"
         android:text="@string/dialog_cancel_btn"
-        android:background="@android:color/transparent"
+        android:background="@drawable/round_button"
         android:src="@drawable/ic_baseline_delete_forever_24"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
     <ImageButton
         android:id="@+id/saveImageBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
         android:layout_marginStart="26dp"
         android:layout_marginBottom="46dp"
         android:text="@string/save_photo"
         android:src="@drawable/ic_baseline_save_24"
-        android:background="@android:color/transparent"
+        android:background="@drawable/round_button"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 

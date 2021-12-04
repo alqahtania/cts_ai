@@ -25,3 +25,9 @@ local.properties
 /lib_task_api/build/.transforms/0a550ce25327f9030a069d33da8492c7/results.bin
 /lib_task_api/build/.transforms/846c46e8075d736332402c57675e5454/results.bin
 /lib_task_api/build/.transforms/0a550ce25327f9030a069d33da8492c7/transformed/debug/org/tensorflow/lite/examples/detection/tflite/TFLiteObjectDetectionAPIModel.dex
+/lib_task_api/build/.transforms/ea3a7a9f20e207604565d4b151952a5f/transformed/debug/org/tensorflow/lite/examples/detection/tflite/BuildConfig.dex
+/lib_task_api/build/.transforms/ea3a7a9f20e207604565d4b151952a5f/transformed/desugar_graph.bin
+/lib_task_api/build/.transforms/ea3a7a9f20e207604565d4b151952a5f/transformed/debug/org/tensorflow/lite/examples/detection/tflite/Detector$Recognition.dex
+/lib_task_api/build/.transforms/ea3a7a9f20e207604565d4b151952a5f/transformed/debug/org/tensorflow/lite/examples/detection/tflite/Detector.dex
+/lib_task_api/build/.transforms/ea3a7a9f20e207604565d4b151952a5f/results.bin
+/lib_task_api/build/.transforms/ea3a7a9f20e207604565d4b151952a5f/transformed/debug/org/tensorflow/lite/examples/detection/tflite/TFLiteObjectDetectionAPIModel.dex
