@@ -70,7 +70,6 @@ class MainActivity : AppCompatActivity() {
 
         // Request camera permissions
         if (allPermissionsGranted()) {
-            startCamera()
         } else {
             ActivityCompat.requestPermissions(
                 this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS
@@ -82,6 +81,17 @@ class MainActivity : AppCompatActivity() {
         cameraExecutor = Executors.newSingleThreadExecutor()
     }
 
+
+    override fun onStart() {
+        super.onStart()
+        if (allPermissionsGranted()) {
+            startCamera()
+        } else {
+            ActivityCompat.requestPermissions(
+                this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS
+            )
+        }
+    }
 
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<String>, grantResults:
@@ -233,6 +243,7 @@ class MainActivity : AppCompatActivity() {
             imageCapture?.let {
                 setTargetRotation(it)
             }
+            showToast("getViewPort null ${viewFinder.getViewPort() == null}")
 
             val resolutionSize = Size(viewFinder.width, viewFinder.height)
             val freezAnalyzer = FreezeAnalyzer(this) { bitmap, recognizables ->
