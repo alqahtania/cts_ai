@@ -243,7 +243,6 @@ class MainActivity : AppCompatActivity() {
             imageCapture?.let {
                 setTargetRotation(it)
             }
-            showToast("getViewPort null ${viewFinder.getViewPort() == null}")
 
             val resolutionSize = Size(viewFinder.width, viewFinder.height)
             val freezAnalyzer = FreezeAnalyzer(this) { bitmap, recognizables ->
