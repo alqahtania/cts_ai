@@ -5,7 +5,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
-import org.tensorflow.lite.examples.detection.tflite.Detector
+import com.example.cameraxapp.tflite.Detector
 
 class FreezeAnalyzer(
     private val context: Context,

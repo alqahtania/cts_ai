@@ -15,7 +15,6 @@ import androidx.core.content.ContextCompat
 import java.util.concurrent.Executors
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
-import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -32,17 +31,18 @@ import java.io.IOException
 import android.graphics.Bitmap
 import android.os.Build
 import android.view.*
+import com.example.cameraxapp.tflite.Detector
 import com.example.cameraxapp.util.Constants.BICYCLE
 import com.example.cameraxapp.util.Constants.BUS
 import com.example.cameraxapp.util.Constants.CAR
 import com.example.cameraxapp.util.Constants.MOTORCYCLE
 import com.example.cameraxapp.util.Constants.TRUCK
 import com.example.cameraxapp.util.ImageHelper
-import org.tensorflow.lite.examples.detection.tflite.Detector
+import kotlinx.android.synthetic.main.activity_ai_camera.*
 
 typealias LumaListener = (luma: Double) -> Unit
 
-class MainActivity : AppCompatActivity() {
+class AICameraActivity : AppCompatActivity() {
     private var imageCapture: ImageCapture? = null
 
     private lateinit var outputDirectory: File
@@ -50,7 +50,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_ai_camera)
         // remove title
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val controller = window?.insetsController

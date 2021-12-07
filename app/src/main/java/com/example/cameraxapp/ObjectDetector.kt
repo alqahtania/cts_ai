@@ -3,9 +3,9 @@ package com.example.cameraxapp
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
+import com.example.cameraxapp.tflite.Detector
+import com.example.cameraxapp.tflite.TFLiteObjectDetectionAPIModel
 import kotlinx.coroutines.*
-import org.tensorflow.lite.examples.detection.tflite.Detector
-import org.tensorflow.lite.examples.detection.tflite.TFLiteObjectDetectionAPIModel
 import java.io.IOException
 import kotlin.coroutines.CoroutineContext
 

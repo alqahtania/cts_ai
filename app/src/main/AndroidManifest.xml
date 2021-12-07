@@ -12,7 +12,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.CameraXApp">
         <activity
-            android:name=".MainActivity"
+            android:name=".AICameraActivity"
             android:exported="true"
             android:screenOrientation="portrait">
             <intent-filter>
